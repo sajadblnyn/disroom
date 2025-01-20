@@ -13,6 +13,8 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 - Redis-backed user presence management
 
 ## System Architecture Diagram
+```mermaid
+
 graph TD
     subgraph Clients
         C1[Client 1]
