@@ -82,11 +82,11 @@ graph TD
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/disroom.git
+git clone https://github.com/sajadblnyn/disroom.git
 cd disroom
 
 # 2. Start all services
-docker-compose up --build
+docker-compose -f build/docker-compose.yml build disroom
 ```
 ## 💻 Usage
 
@@ -112,6 +112,7 @@ nc localhost 8080  # or telnet localhost 8080
 - ⚠️ Commands are case-sensitive
 
 📌 **Tip**: Always `join` a room before sending messages!
+
 
 ## Infrastructure Characteristics
 
