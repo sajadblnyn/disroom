@@ -1,41 +1,62 @@
+# DisRoom - Distributed Chat Room System
+
+A real-time chat system with distributed messaging capabilities using Go, Redis, and NATS JetStream.
+
+## Features
+
+- Real-time message broadcasting
+- Multiple chat rooms support
+- User presence tracking
+- Message history retrieval
+- Active users listing
+- NATS-based message persistence
+- Redis-backed user presence management
+
 ## System Architecture
 
 ```mermaid
 graph TD
-    %% Clients
-    ClientA[Client] -->|TCP| GoServer
-    ClientB[Client] -->|TCP| GoServer
+    Client[TCP Client] -->|Connects| GoServer[Go TCP Server]
+    GoServer -->|Stores/Loads| Redis[(Redis)]
+    GoServer -->|Publishes/Consumes| NATS[NATS JetStream]
     
-    %% Main Components
-    GoServer[Go Server<br>disroom:port] -->|"SET/GET user presence"| Redis[(Redis<br>redis:6379)]
-    GoServer -->|"PUB/SUB messages"| NATS[NATS JetStream<br>nats:4222]
-    NATS -->|Persist messages| Storage[(File Storage)]
-    
-    %% Internal Components
-    subgraph Docker Network[Containerized Services]
-        GoServer
-        Redis
-        NATS
-        Storage
+    subgraph Data Storage
+        Redis -.->|Active Users<br>room:*:users| Users[User Presence]
+        NATS -.->|Persistent Messages<br>room.*| Messages[Message History]
     end
-    
-    %% Data Flow
-    GoServer -->|"Periodic presence updates<br>(every 30s)"| Redis
-    NATS -->|"Message history<br>retrieval"| GoServer
-    NATS -->|"Stream replication"| NATS_Replica[NATS Node]
-    
-    %% Administration
-    Admin[Admin] -->|Monitoring| NATS_Monitor[NATS Monitor<br>8222]
-    
-    %% Styles
-    classDef client fill:#e1f5fe,stroke:#039be5;
-    classDef service fill:#f0f4c3,stroke:#afb42b;
-    classDef storage fill:#dcedc8,stroke:#689f38;
-    classDef queue fill:#ffcdd2,stroke:#e53935;
-    classDef admin fill:#f3e5f5,stroke:#8e24aa;
-    
-    class ClientA,ClientB client;
-    class GoServer,Redis,NATS service;
-    class Storage storage;
-    class NATS_Replica queue;
-    class Admin,NATS_Monitor admin;
+
+    style GoServer fill:#74b9ff,stroke:#0984e3
+    style Redis fill:#ff7675,stroke:#d63031
+    style NATS fill:#55efc4,stroke:#00b894
+
+
+Components
+TCP Server (Go)
+
+Handles client connections
+
+Processes commands: join, send, users, history, exit
+
+Manages user presence and room membership
+
+Redis
+
+Stores active users per room using Sets
+
+Tracks real-time presence with periodic updates
+
+NATS JetStream
+
+Persistent message streaming with room.* subjects
+
+Guaranteed message delivery and retention
+
+Cluster-ready with multiple server nodes
+
+Installation
+Prerequisites
+Go 1.19+
+
+Redis server (localhost:6379)
+
+NATS server cluster (3-node setup recommended)
