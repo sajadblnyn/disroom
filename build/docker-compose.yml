@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  nats1:
+    image: nats:latest
+    container_name: nats1
+    hostname: nats1
+    ports:
+      - "4222:4222"  # Client port
+      - "6222:6222"  # Cluster port
+      - "8222:8222"  # Monitoring port
+    volumes:
+      - nats_data:/jetstream  # Separate volume for nats1
+    networks:
+      - disroom-network
+    command: >
+      -js
+      -sd /jetstream
+      --name nats1
+      --cluster nats://0.0.0.0:6222
+      --routes nats://nats2:6222,nats://nats3:6222
+      --cluster_name disroom_nats_cluster
+
+  nats2:
+    image: nats:latest
+    container_name: nats2
+    hostname: nats2
+    ports:
+      - "4223:4222"  # Client port
+      - "6223:6222"  # Cluster port
+      - "8223:8222"  # Monitoring port
+    volumes:
+      - nats_data:/jetstream  # Separate volume for nats2
+    networks:
+      - disroom-network
+    command: >
+      -js
+      -sd /jetstream
+      --name nats2
+      --cluster nats://0.0.0.0:6222
+      --routes nats://nats1:6222,nats://nats3:6222
+      --cluster_name disroom_nats_cluster
+
+  nats3:
+    image: nats:latest
+    container_name: nats3
+    hostname: nats3
+    ports:
+      - "4224:4222"  # Client port
+      - "6224:6222"  # Cluster port
+      - "8224:8222"  # Monitoring port
+    volumes:
+      - nats_data:/jetstream  # Separate volume for nats3
+    networks:
+      - disroom-network
+    command: >
+      -js
+      -sd /jetstream
+      --name nats3
+      --cluster nats://0.0.0.0:6222
+      --routes nats://nats1:6222,nats://nats2:6222
+      --cluster_name disroom_nats_cluster
+  redis:
+    image: redis:latest
+    container_name: redis-server
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - disroom-network
+volumes:
+  nats_data:
+    driver: local
+  redis-data:
+    driver: local
+networks:
+  disroom-network:
+    driver: bridge
