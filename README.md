@@ -12,66 +12,37 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 - NATS-based message persistence
 - Redis-backed user presence management
 
-## System Architecture Diagram
 ```mermaid
+%% System Architecture Diagram
 graph TD
     subgraph Clients
-        C1[Client]
-        C2[Client]
-        Cn[Client]
+        C1[Client 1]
+        C2[Client 2]
+        Cn[Client N]
     end
 
-    subgraph LoadBalancer[Load Balancer]
-        LB[HAProxy/NGINX]
+    subgraph Go Chat Server
+        GS[TCP Server :8080]
+        GS -->|Handle Connections| HC[Connection Handler]
+        HC -->|User Commands| P[Protocol Processor]
     end
 
-    subgraph GoServerCluster[Go Server Cluster]
-        GS1[Instance 1]
-        GS2[Instance 2]
-        GSn[Instance N]
+    subgraph Data Layer
+        GS -->|Store/Retrieve Active Users| R[(Redis)]
+        GS -->|Publish/Subscribe Messages| NATS
     end
 
-    subgraph RedisCluster[Redis Cluster]
-        R1[Primary]
-        R2[Replica]
-        R3[Replica]
+    subgraph NATS Cluster
+        NATS{NATS JetStream}
+        NATS -->|Stream Persistence| STORAGE[(File Storage)]
+        N1[NATS Node 1]
+        N2[NATS Node 2]
+        N3[NATS Node 3]
     end
 
-    subgraph NATSCluster[NATS Cluster]
-        N1[Node 1]
-        N2[Node 2]
-        N3[Node 3]
-    end
-
-    C1 -->|TCP| LB
-    C2 -->|TCP| LB
-    Cn -->|TCP| LB
-    
-    LB -->|Distribute| GS1
-    LB -->|Connections| GS2
-    LB -->|Across Cluster| GSn
-    
-    GS1 -->|Presence Data| RedisCluster
-    GS2 -->|Presence Data| RedisCluster
-    GSn -->|Presence Data| RedisCluster
-    
-    GS1 -->|Pub/Sub| NATSCluster
-    GS2 -->|Pub/Sub| NATSCluster
-    GSn -->|Pub/Sub| NATSCluster
-
-    N1 <-->|Raft Consensus| N2
-    N2 <-->|Raft Consensus| N3
-    N3 <-->|Raft Consensus| N1
-
-    R1 <-->|Replication| R2
-    R1 <-->|Replication| R3
-
-    classDef cluster fill:#f9f9f9,stroke:#999,stroke-width:2px;
-    classDef component fill:#e6f3ff,stroke:#3399ff;
-    classDef storage fill:#ffe6e6,stroke:#ff6666;
-    classDef queue fill:#e6ffe6,stroke:#33cc33;
-    
-    class Clients,GoServerCluster,NATSCluster,RedisCluster cluster;
-    class LB,GS1,GS2,GSn component;
-    class R1,R2,R3 storage;
-    class N1,N2,N3 queue;
+    C1 -->|TCP| GS
+    C2 -->|TCP| GS
+    Cn -->|TCP| GS
+    NATS -.- N1
+    NATS -.- N2
+    NATS -.- N3
