@@ -1,22 +1,41 @@
-# DisRoom - Distributed Chat System
-
-![Architecture Diagram](https://mermaid.ink/svg/pako:eNplkE1vgzAMhv_K5XQ7oNpJ2g7s0AOkHXqYVFWqJIIkRlCJqkri36eQj6nbwZaf53V4bYwVcGFSmYF-7Y0K0F6U1gXo1s0yY2K_3ZqF6lUe7dFZ5Bp4iRq8Q1NQZ7Dc7M2sOQ8h5H5H6jH3c0oHlB6HfUQp1O0N5FqD9lOaF1eQvQYdO5Lv7O6lQ3E5mDlFqA9qX1VqjvK_5JdJZg9VvV9p4XZc6t_1Zk5NsnW0a6dTj0Ht9O5V0VH1fJg7VlM4r6Vh8G3cHc9LhH4lK0t3cQ)
+## System Architecture
 
 ```mermaid
 graph TD
-    Client[Client] -->|TCP| GoServer[Go Server]
-    GoServer -->|User Presence| Redis[(Redis)]
-    GoServer -->|Message Streaming| NATS[NATS JetStream]
-    NATS -->|Message Persistence| Storage[File Storage]
+    %% Clients
+    ClientA[Client] -->|TCP| GoServer
+    ClientB[Client] -->|TCP| GoServer
     
-    subgraph Docker Network
+    %% Main Components
+    GoServer[Go Server<br>disroom:port] -->|"SET/GET user presence"| Redis[(Redis<br>redis:6379)]
+    GoServer -->|"PUB/SUB messages"| NATS[NATS JetStream<br>nats:4222]
+    NATS -->|Persist messages| Storage[(File Storage)]
+    
+    %% Internal Components
+    subgraph Docker Network[Containerized Services]
         GoServer
         Redis
         NATS
+        Storage
     end
     
-    subgraph Clients
-        Client
-        Client2[Client]
-        Client3[Client]
-    end
+    %% Data Flow
+    GoServer -->|"Periodic presence updates<br>(every 30s)"| Redis
+    NATS -->|"Message history<br>retrieval"| GoServer
+    NATS -->|"Stream replication"| NATS_Replica[NATS Node]
+    
+    %% Administration
+    Admin[Admin] -->|Monitoring| NATS_Monitor[NATS Monitor<br>8222]
+    
+    %% Styles
+    classDef client fill:#e1f5fe,stroke:#039be5;
+    classDef service fill:#f0f4c3,stroke:#afb42b;
+    classDef storage fill:#dcedc8,stroke:#689f38;
+    classDef queue fill:#ffcdd2,stroke:#e53935;
+    classDef admin fill:#f3e5f5,stroke:#8e24aa;
+    
+    class ClientA,ClientB client;
+    class GoServer,Redis,NATS service;
+    class Storage storage;
+    class NATS_Replica queue;
+    class Admin,NATS_Monitor admin;
