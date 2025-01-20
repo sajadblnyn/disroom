@@ -48,94 +48,33 @@ graph TD
     NATS -.- N2
     NATS -.- N3
 ```
-System Architecture Overview
-Key Components:
-TCP Server (Port 8080)
+## Infrastructure Characteristics
 
-Handles client connections
+The system architecture is designed with the following key characteristics:
 
-Manages network I/O
+- **Horizontal Scalability**  
+  _NATS Cluster Scaling_: The NATS cluster can elastically scale to handle increased message throughput, supporting dynamic addition/removal of nodes while maintaining consistent message delivery.
 
-Routes commands to protocol processor
+- **Fault Tolerance**  
+  _Message Redundancy_: NATS clustering provides automatic message replication across nodes, ensuring continuous availability even during node failures.  
+  _Automatic Failover_: Built-in Raft consensus protocol maintains cluster coordination and leadership election.
 
-Connection Handler
+- **Persistence**  
+  _Durable Message Storage_: JetStream persists messages to disk with configurable retention policies (time-based, size-based, or interest-based).  
+  _Crash Recovery_: Guaranteed message durability through Write-Ahead Logging (WAL) and checksum verification.
 
-Manages per-connection state
+- **Real-time Updates**  
+  _Instant Presence Tracking_: Redis-backed user presence system provides sub-millisecond response times for:  
+  • User join/leave operations  
+  • Active user listings  
+  • Presence heartbeat updates  
+  _Cluster Synchronization_: Redis pub/sub channels maintain consistent presence state across server instances.
 
-Maintains user sessions
-
-Coordinates with Redis and NATS
-
-Protocol Processor
-
-Implements command parsing
-
-Executes business logic for:
-
-Room management
-
-Message handling
-
-User presence tracking
-
-Redis Database
-
-Stores active users per room using Sets
-
-Tracks real-time presence status
-
-Provides fast membership lookups
-
-NATS JetStream Cluster
-
-3-node clustered messaging system
-
-Persistent message storage
-
-Provides:
-
-Real-time message distribution
-
-Historical message retention
-
-Presence notification channel
-
-Key Data Flows:
-Client Connection
-
-Clients establish TCP connections to port 8080
-
-Text-based command protocol for interaction
-
-Room Management
-
-JOIN commands update Redis user sets
-
-Periodic presence updates via NATS
-
-Automatic cleanup on disconnect
-
-Message Flow
-
-Messages published to room-specific NATS subjects
-
-JetStream persists messages to disk
-
-Subscribers receive real-time updates
-
-History Retrieval
-
-JetStream stream consumers fetch historical messages
-
-Ordered message replay from persistence layer
-
-Infrastructure Characteristics:
-Horizontal Scalability: NATS cluster can scale to handle increased message throughput
-
-Fault Tolerance: NATS clustering provides message redundancy
-
-Persistence: JetStream ensures message durability with file storage
-
-Real-time Updates: Redis enables instant presence tracking
-
-Lightweight Protocol: Simple TCP-based communication for broad client compatibility
+- **Lightweight Protocol**  
+  _TCP Efficiency_: Binary-based plain TCP protocol minimizes overhead compared to HTTP-based alternatives.  
+  _Broad Compatibility_: Simple text-based command structure supports integration with:  
+  • Terminal clients  
+  • GUI applications  
+  • IoT devices  
+  • WebSocket gateways  
+  _Connection Resilience_: Built-in reconnection logic handles network interruptions gracefully.
