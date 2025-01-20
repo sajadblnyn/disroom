@@ -16,40 +16,39 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 
 ```mermaid
 graph TD
-    %% Clients
-    ClientA[Client] -->|TCP 8080| GoServer
-    ClientB[Client] -->|TCP 8080| GoServer
-    
-    %% Main Components
-    GoServer[Go Server<br>disroom:8080] -->|"SET/GET user presence"| Redis[(Redis<br>redis:6379)]
-    GoServer -->|"PUB/SUB messages"| NATS[NATS JetStream<br>nats:4222]
-    NATS -->|Persist messages| Storage[(File Storage)]
-    
-    %% Internal Components
-    subgraph Docker Network[Containerized Services]
+    Client[TCP Client] -->|1. Connects| GoServer[Go TCP Server]
+    GoServer -->|2. Stores/Loads Active Users| Redis[(Redis Database)]
+    GoServer -->|3. Publishes Messages| NATS[NATS JetStream Cluster]
+    GoServer -->|4. Retrieves History| NATS
+    NATS -->|5. Push Messages| GoServer
+    GoServer -->|6. Sends Messages| Client
+
+    subgraph Go_Application
         GoServer
-        Redis
-        NATS
-        Storage
+        TCP_Listener[TCP Listener\n:8080]
+        Command_Handler[Command Handler\njoin/send/users/history]
+        Presence_Manager[Presence Manager\n(Redis Client)]
+        JetStream_Manager[JetStream Manager\n(NATS Client)]
     end
-    
-    %% Data Flow
-    GoServer -->|"Periodic presence updates<br>(every 30s)"| Redis
-    NATS -->|"Message history<br>retrieval"| GoServer
-    NATS -->|"Stream replication"| NATS_Replica[NATS Node]
-    
-    %% Administration
-    Admin[Admin] -->|Monitoring| NATS_Monitor[NATS Monitor<br>8222]
-    
-    %% Styles
-    classDef client fill:#e1f5fe,stroke:#039be5;
-    classDef service fill:#f0f4c3,stroke:#afb42b;
-    classDef storage fill:#dcedc8,stroke:#689f38;
-    classDef queue fill:#ffcdd2,stroke:#e53935;
-    classDef admin fill:#f3e5f5,stroke:#8e24aa;
-    
-    class ClientA,ClientB client;
-    class GoServer,Redis,NATS service;
-    class Storage storage;
-    class NATS_Replica queue;
-    class Admin,NATS_Monitor admin;
+
+    subgraph Redis
+        Redis -->|User Sets| Room1_Users[room:room1:users]
+        Redis -->|User Sets| Room2_Users[room:room2:users]
+    end
+
+    subgraph NATS_JetStream
+        NATS -->|Streams| Message_Stream[ChatRooms Stream\nSubjects: room.*]
+        NATS -->|Key-Value| Presence_Updates[Presence Updates\nroom.*.presence]
+    end
+
+    Client -->|7. User Commands| TCP_Listener
+    TCP_Listener -->|8. Routes Requests| Command_Handler
+    Command_Handler -->|9. Manages Presence| Presence_Manager
+    Command_Handler -->|10. Message Operations| JetStream_Manager
+    Presence_Manager -->|11. User Updates| Redis
+    JetStream_Manager -->|12. Pub/Sub| NATS
+
+    style Go_Application fill:#1e90ff,stroke:#0000ff
+    style Redis fill:#ff6347,stroke:#dc143c
+    style NATS_JetStream fill:#3cb371,stroke:#2e8b57
+    style Client fill:#f4a460,stroke:#8b4513
