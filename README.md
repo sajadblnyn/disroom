@@ -12,43 +12,36 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 - NATS-based message persistence
 - Redis-backed user presence management
 
-## System Architecture
-
-```mermaid
+%% System Architecture Diagram
 graph TD
-    Client[TCP Client] -->|1. Connects| GoServer[Go TCP Server]
-    GoServer -->|2. Stores/Loads Active Users| Redis[(Redis Database)]
-    GoServer -->|3. Publishes Messages| NATS[NATS JetStream Cluster]
-    GoServer -->|4. Retrieves History| NATS
-    NATS -->|5. Push Messages| GoServer
-    GoServer -->|6. Sends Messages| Client
-
-    subgraph Go_Application
-        GoServer
-        TCP_Listener["TCP Listener<br>:8080"]
-        Command_Handler["Command Handler<br>join/send/users/history"]
-        Presence_Manager["Presence Manager<br><i>(Redis Client)</i>"]
-        JetStream_Manager["JetStream Manager<br><i>(NATS Client)</i>"]
+    subgraph Clients
+        C1[Client 1]
+        C2[Client 2]
+        Cn[Client N]
     end
 
-    subgraph Redis
-        Redis -->|User Sets| Room1_Users["room:room1:users"]
-        Redis -->|User Sets| Room2_Users["room:room2:users"]
+    subgraph Go Chat Server
+        GS[TCP Server :8080]
+        GS -->|Handle Connections| HC[Connection Handler]
+        HC -->|User Commands| P[Protocol Processor]
     end
 
-    subgraph NATS_JetStream
-        NATS -->|Streams| Message_Stream["ChatRooms Stream<br>Subjects: room.*"]
-        NATS -->|Key-Value| Presence_Updates["Presence Updates<br>room.*.presence"]
+    subgraph Data Layer
+        GS -->|Store/Retrieve Active Users| R[(Redis)]
+        GS -->|Publish/Subscribe Messages| NATS
     end
 
-    Client -->|7. User Commands| TCP_Listener
-    TCP_Listener -->|8. Routes Requests| Command_Handler
-    Command_Handler -->|9. Manages Presence| Presence_Manager
-    Command_Handler -->|10. Message Operations| JetStream_Manager
-    Presence_Manager -->|11. User Updates| Redis
-    JetStream_Manager -->|12. Pub/Sub| NATS
+    subgraph NATS Cluster
+        NATS{NATS JetStream}
+        NATS -->|Stream Persistence| STORAGE[(File Storage)]
+        N1[NATS Node 1]
+        N2[NATS Node 2]
+        N3[NATS Node 3]
+    end
 
-    style Go_Application fill:#1e90ff,stroke:#0000ff
-    style Redis fill:#ff6347,stroke:#dc143c
-    style NATS_JetStream fill:#3cb371,stroke:#2e8b57
-    style Client fill:#f4a460,stroke:#8b4513
+    C1 -->|TCP| GS
+    C2 -->|TCP| GS
+    Cn -->|TCP| GS
+    NATS -.- N1
+    NATS -.- N2
+    NATS -.- N3
