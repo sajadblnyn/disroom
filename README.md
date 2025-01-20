@@ -25,20 +25,20 @@ graph TD
 
     subgraph Go_Application
         GoServer
-        TCP_Listener[TCP Listener<br>:8080]
-        Command_Handler[Command Handler<br>join/send/users/history]
-        Presence_Manager[Presence Manager<br>(Redis Client)]
-        JetStream_Manager[JetStream Manager<br>(NATS Client)]
+        TCP_Listener["TCP Listener<br>:8080"]
+        Command_Handler["Command Handler<br>join/send/users/history"]
+        Presence_Manager["Presence Manager<br><i>(Redis Client)</i>"]
+        JetStream_Manager["JetStream Manager<br><i>(NATS Client)</i>"]
     end
 
     subgraph Redis
-        Redis -->|User Sets| Room1_Users[room:room1:users]
-        Redis -->|User Sets| Room2_Users[room:room2:users]
+        Redis -->|User Sets| Room1_Users["room:room1:users"]
+        Redis -->|User Sets| Room2_Users["room:room2:users"]
     end
 
     subgraph NATS_JetStream
-        NATS -->|Streams| Message_Stream[ChatRooms Stream<br>Subjects: room.*]
-        NATS -->|Key-Value| Presence_Updates[Presence Updates<br>room.*.presence]
+        NATS -->|Streams| Message_Stream["ChatRooms Stream<br>Subjects: room.*"]
+        NATS -->|Key-Value| Presence_Updates["Presence Updates<br>room.*.presence"]
     end
 
     Client -->|7. User Commands| TCP_Listener
@@ -50,7 +50,5 @@ graph TD
 
     style Go_Application fill:#1e90ff,stroke:#0000ff
     style Redis fill:#ff6347,stroke:#dc143c
-    style NATS_JetStream fill:#3cb371,stroke:#2e8b57
-    style Client fill:#f4a460,stroke:#8b4513
     style NATS_JetStream fill:#3cb371,stroke:#2e8b57
     style Client fill:#f4a460,stroke:#8b4513
