@@ -25,7 +25,7 @@ graph TD
 
     subgraph Go_Application
         GoServer
-        TCP_Listener[TCP Listener\n:8080]
+        TCP_Listener[TCP Listener\n:port]
         Command_Handler[Command Handler\njoin/send/users/history]
         Presence_Manager[Presence Manager\n(Redis Client)]
         JetStream_Manager[JetStream Manager\n(NATS Client)]
