@@ -14,7 +14,6 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 
 ## System Architecture Diagram
 ```mermaid
-%% Enhanced System Architecture Diagram
 graph TD
     subgraph Clients
         C1[Client]
@@ -22,55 +21,57 @@ graph TD
         Cn[Client]
     end
 
-    subgraph Load Balancer
-        LB[HAProxy/NGINX\nLoad Balancer\nPort 8080]
+    subgraph LoadBalancer[Load Balancer]
+        LB[HAProxy/NGINX]
     end
 
-    subgraph Go Chat Server Cluster
-        GS1[Go Server\nInstance 1]
-        GS2[Go Server\nInstance 2]
-        GSn[Go Server\nInstance N]
+    subgraph GoServerCluster[Go Server Cluster]
+        GS1[Instance 1]
+        GS2[Instance 2]
+        GSn[Instance N]
     end
 
-    subgraph Data Layer
-        R[(Redis\nSingle Primary\n+ Replicas)]
-        NATS{NATS JetStream Cluster}
+    subgraph RedisCluster[Redis Cluster]
+        R1[Primary]
+        R2[Replica]
+        R3[Replica]
     end
 
-    subgraph NATS Cluster
-        N1[NATS Node 1\nnats://host1:4222]
-        N2[NATS Node 2\nnats://host2:4223]
-        N3[NATS Node 3\nnats://host3:4224]
-        N1 <-->|Raft Consensus| N2
-        N2 <-->|Raft Consensus| N3
-        N3 <-->|Raft Consensus| N1
+    subgraph NATSCluster[NATS Cluster]
+        N1[Node 1]
+        N2[Node 2]
+        N3[Node 3]
     end
 
     C1 -->|TCP| LB
     C2 -->|TCP| LB
     Cn -->|TCP| LB
     
-    LB -->|TCP Connections| GS1
-    LB -->|TCP Connections| GS2
-    LB -->|TCP Connections| GSn
+    LB -->|Distribute| GS1
+    LB -->|Connections| GS2
+    LB -->|Across Cluster| GSn
     
-    GS1 -->|User Presence| R
-    GS1 -->|Pub/Sub| NATS
-    GS2 -->|User Presence| R
-    GS2 -->|Pub/Sub| NATS
-    GSn -->|User Presence| R
-    GSn -->|Pub/Sub| NATS
+    GS1 -->|Presence Data| RedisCluster
+    GS2 -->|Presence Data| RedisCluster
+    GSn -->|Presence Data| RedisCluster
+    
+    GS1 -->|Pub/Sub| NATSCluster
+    GS2 -->|Pub/Sub| NATSCluster
+    GSn -->|Pub/Sub| NATSCluster
 
-    NATS -->|Stream Replication| N1
-    NATS -->|Stream Replication| N2
-    NATS -->|Stream Replication| N3
+    N1 <-->|Raft Consensus| N2
+    N2 <-->|Raft Consensus| N3
+    N3 <-->|Raft Consensus| N1
+
+    R1 <-->|Replication| R2
+    R1 <-->|Replication| R3
 
     classDef cluster fill:#f9f9f9,stroke:#999,stroke-width:2px;
-    classDef component fill:#e6f3ff,stroke:#3399ff,stroke-width:2px;
-    classDef storage fill:#ffe6e6,stroke:#ff6666,stroke-width:2px;
-    classDef queue fill:#e6ffe6,stroke:#33cc33,stroke-width:2px;
+    classDef component fill:#e6f3ff,stroke:#3399ff;
+    classDef storage fill:#ffe6e6,stroke:#ff6666;
+    classDef queue fill:#e6ffe6,stroke:#33cc33;
     
-    class Clients,Go Chat Server Cluster,NATS Cluster cluster;
+    class Clients,GoServerCluster,NATSCluster,RedisCluster cluster;
     class LB,GS1,GS2,GSn component;
-    class R storage;
-    class NATS,N1,N2,N3 queue;
+    class R1,R2,R3 storage;
+    class N1,N2,N3 queue;
