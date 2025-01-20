@@ -194,6 +194,15 @@ func handleConnection(conn net.Conn) {
 				continue
 			}
 
+			presenceSubject := fmt.Sprintf("room.%s.presence", newRoomID)
+			sub, err = nc.Subscribe(presenceSubject, func(msg *nats.Msg) {
+				fmt.Fprintf(conn, "PRESENCE| %s\n", string(msg.Data))
+			})
+			if err != nil {
+				fmt.Fprintf(conn, "Presence error: %v\n", err)
+				continue
+			}
+
 			userID = newUserID
 			roomID = newRoomID
 			fmt.Fprintf(conn, "Joined room %s as %s\n", roomID, userID)
