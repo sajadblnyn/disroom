@@ -23,7 +23,7 @@ graph TD
     end
 
     subgraph Go Chat Server
-        GS[TCP Server :8080]
+        GS[TCP Server]
         GS -->|Handle Connections| HC[Connection Handler]
         HC -->|User Commands| P[Protocol Processor]
     end
@@ -53,7 +53,7 @@ graph TD
 
 ### Core System Elements
 - **Go Application Server**  
-  - TCP listener (:8080)  
+  - TCP listener
   - Command processor (join/send/users/history/exit)  
   - Redis client integration  
   - NATS JetStream client  
@@ -77,29 +77,42 @@ graph TD
 ## ⚙️ Installation
 
 ### Prerequisites
-- Go 1.19+
-- Redis Server
-- NATS Server v2.9+
+- Docker 20.10+
+- Docker Compose 2.12+
 
 ```bash
 # 1. Clone repository
 git clone https://github.com/yourusername/disroom.git
 cd disroom
 
-# 2. Install dependencies
-go mod tidy
-
-# 3. Start Redis
-redis-server --port 6379
-
-# 4. Start NATS cluster (3-node example)
-nats-server -p 4222 -cluster nats://127.0.0.1:6222 -routes nats://127.0.0.1:6222,nats://127.0.0.1:6223 &
-nats-server -p 4223 -cluster nats://127.0.0.1:6223 -routes nats://127.0.0.1:6222,nats://127.0.0.1:6224 &
-nats-server -p 4224 -cluster nats://127.0.0.1:6224 -routes nats://127.0.0.1:6222,nats://127.0.0.1:6223 &
-
-# 5. Build and run server
-go build -o disroom && ./disroom
+# 2. Start all services
+docker-compose up --build
 ```
+## 💻 Usage
+
+### Connect to the Chat Server
+```bash
+nc localhost 8080  # or telnet localhost 8080
+```
+## ⌨️ Basic Commands
+
+| Command        | Parameters      | Description                          | Example                     |
+|----------------|-----------------|--------------------------------------|-----------------------------|
+| `join`         | `<room_id>`     | Join or create a chat room           | `join general`              |
+| `send`         | `<message>`     | Broadcast message to current room    | `send Hello everyone!`      |
+| `users`        | -               | List active users in current room    | `users`                     |
+| `history`      | -               | Show last 100 messages in room       | `history`                   |
+| `exit`         | -               | Disconnect from server               | `exit`                      |
+
+### Usage Notes:
+- 🔑 `join` requires a room ID (alphanumeric, no spaces)
+- 📨 `send` messages support any text content
+- 👥 `users` shows real-time presence from Redis
+- 🕒 `history` retrieves messages from NATS JetStream
+- ⚠️ Commands are case-sensitive
+
+📌 **Tip**: Always `join` a room before sending messages!
+
 ## Infrastructure Characteristics
 
 The system architecture is designed with the following key characteristics:
