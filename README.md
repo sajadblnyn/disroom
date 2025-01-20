@@ -12,7 +12,7 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 - NATS-based message persistence
 - Redis-backed user presence management
 
-%% System Architecture Diagram
+## System Architecture Diagram
 graph TD
     subgraph Clients
         C1[Client 1]
