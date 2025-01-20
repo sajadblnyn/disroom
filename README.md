@@ -48,6 +48,58 @@ graph TD
     NATS -.- N2
     NATS -.- N3
 ```
+
+## 🧰 Components
+
+### Core System Elements
+- **Go Application Server**  
+  - TCP listener (:8080)  
+  - Command processor (join/send/users/history/exit)  
+  - Redis client integration  
+  - NATS JetStream client  
+  - Connection handler
+
+- **Redis Database**  
+  - Stores active users per room using Sets  
+  - Key format: `room:<room_id>:users`  
+  - Handles real-time presence updates
+
+- **NATS JetStream**  
+  - Persistent message streaming  
+  - Stream name: `ChatRooms`  
+  - Subjects: `room.*` (wildcard per room)  
+  - Message retention policy: File storage
+
+- **TCP Client**  
+  - User interface via netcat/telnet  
+  - Simple text-based interaction
+
+## ⚙️ Installation
+
+### Prerequisites
+- Go 1.19+
+- Redis Server
+- NATS Server v2.9+
+
+```bash
+# 1. Clone repository
+git clone https://github.com/yourusername/disroom.git
+cd disroom
+
+# 2. Install dependencies
+go mod tidy
+
+# 3. Start Redis
+redis-server --port 6379
+
+# 4. Start NATS cluster (3-node example)
+nats-server -p 4222 -cluster nats://127.0.0.1:6222 -routes nats://127.0.0.1:6222,nats://127.0.0.1:6223 &
+nats-server -p 4223 -cluster nats://127.0.0.1:6223 -routes nats://127.0.0.1:6222,nats://127.0.0.1:6224 &
+nats-server -p 4224 -cluster nats://127.0.0.1:6224 -routes nats://127.0.0.1:6222,nats://127.0.0.1:6223 &
+
+# 5. Build and run server
+go build -o disroom && ./disroom
+```
 ## Infrastructure Characteristics
 
 The system architecture is designed with the following key characteristics:
