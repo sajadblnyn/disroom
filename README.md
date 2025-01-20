@@ -28,35 +28,3 @@ graph TD
     style GoServer fill:#74b9ff,stroke:#0984e3
     style Redis fill:#ff7675,stroke:#d63031
     style NATS fill:#55efc4,stroke:#00b894
-
-
-Components
-TCP Server (Go)
-
-Handles client connections
-
-Processes commands: join, send, users, history, exit
-
-Manages user presence and room membership
-
-Redis
-
-Stores active users per room using Sets
-
-Tracks real-time presence with periodic updates
-
-NATS JetStream
-
-Persistent message streaming with room.* subjects
-
-Guaranteed message delivery and retention
-
-Cluster-ready with multiple server nodes
-
-Installation
-Prerequisites
-Go 1.19+
-
-Redis server (localhost:6379)
-
-NATS server cluster (3-node setup recommended)
