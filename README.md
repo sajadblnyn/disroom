@@ -23,7 +23,7 @@ graph TD
     end
 
     subgraph Go_Server["Go Chat Server (main.go)"]
-        TCP[TCP Server :8080]
+        TCP[TCP Server]
         TCP -->|Accept Connection| Handler[handleConnection]
         Handler -->|Read Commands| Processor[Protocol Processor]
         Processor -->|join/send/users| RedisCmds[(Redis)]
