@@ -14,7 +14,7 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 
 ## System Architecture Diagram
 
-```mermaid
+```
 +-------------+       +-----------+       +-------------------+
 | TCP Clients | <---> | Go Server | <---> | NATS JetStream    |
 +-------------+       +-----------+       +-------------------+
