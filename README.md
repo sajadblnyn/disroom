@@ -14,7 +14,7 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 
 ## System Architecture Diagram
 
-```
+```mermaid
 graph TD
     subgraph Clients
         C1[Client 1]
