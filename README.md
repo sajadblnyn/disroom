@@ -27,44 +27,47 @@ graph TD
         TCP -->|Accept Connection| Handler[handleConnection]
         Handler -->|Read Commands| Processor[Protocol Processor]
         Processor -->|join/send/users| RedisCmds[(Redis)]
-        Processor -->|publishMessage| JetStream
+        Processor -->|publishMessage| GlobalMessages["NATS: room.global_messages"]
     end
 
     subgraph Redis["Redis Data Layer"]
-        RedisCmds["Keys:
+        RedisCmds["Active Users Storage:
         - room:<id>:users (Set)
-        - (SADD/SREM/SMEMBERS)"]
+        - SADD (join)
+        - SREM (leave)
+        - SMEMBERS (list users)"]
     end
 
     subgraph NATS_Cluster["NATS Cluster with JetStream"]
-        N1[NATS Node 1]
-        N2[NATS Node 2]
-        N3[NATS Node 3]
+        GlobalMessages -->|Consumed by| Workers
         JS[(JetStream)]
         
         JS -->|Persistent Stream| Storage["ChatRooms Stream:
         - Subjects: room.*
-        - File Storage
-        - History Retention"]
+        - Storage: File
+        - Retention: Limits"]
         
-        N1 -.-> JS
-        N2 -.-> JS
-        N3 -.-> JS
+        Workers -->|publishMessageToRoom| RoomSubjects["Per-room Subjects:
+        room.123
+        room.456
+        ..."]
     end
 
-    subgraph Workers["Message Processors"]
+    subgraph Workers["Message Processors (runMessagesSubscribers)"]
         W1[Worker]
         W2[Worker]
         W3[Worker]
-        W1 -->|QueueSubscribe| JS
-        W2 -->|QueueSubscribe| JS
-        W3 -->|QueueSubscribe| JS
+        W1 -->|QueueSubscribe 'message-processor'| GlobalMessages
+        W2 -->|QueueSubscribe 'message-processor'| GlobalMessages
+        W3 -->|QueueSubscribe 'message-processor'| GlobalMessages
     end
 
     C1 -->|telnet| TCP
     C2 -->|telnet| TCP
     Cn -->|telnet| TCP
-    Processor -->|publishMessageToRoom| JS
+    RoomSubjects -->|Deliver to| Subscribers["Client Subscriptions:
+        - Each client sub to room.<id>
+        - Ordered delivery per room"]
 ```
 ## Message Flow:
 ```mermaid
