@@ -85,6 +85,17 @@ func publishMessageToRoom(msg Message) {
 		log.Printf("Failed to publish message: %v", err)
 	}
 }
+func publishMessage(msg Message) {
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Failed to marshal message: %v", err)
+		return
+	}
+
+	if _, err = js.Publish("room.global_messages", msgJSON); err != nil {
+		log.Printf("Failed to publish message: %v", err)
+	}
+}
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
@@ -223,7 +234,7 @@ func handleConnection(conn net.Conn) {
 				Content:   strings.Join(args[1:], " "),
 				Timestamp: time.Now(),
 			}
-			publishMessageToRoom(msg)
+			publishMessage(msg)
 
 		case "users":
 			if roomID == "" {
@@ -299,10 +310,34 @@ func startServer() {
 		}
 		go handleConnection(conn)
 	}
+
+}
+
+func runMessagesSubscribers() {
+
+	for i := 0; i < 5; i++ {
+		_, err := js.QueueSubscribe("room.global_messages", "message-processor", func(msg *nats.Msg) {
+			var message Message
+			if err := json.Unmarshal(msg.Data, &message); err != nil {
+				log.Printf("Failed to unmarshal message: %v", err)
+				return
+			}
+			publishMessageToRoom(message)
+		})
+		if err != nil {
+			log.Printf("Failed to subscribe to messages: %v", err)
+			continue
+		}
+
+	}
+
 }
 
 func main() {
 	initRedis()
 	initNATS()
+
+	go runMessagesSubscribers()
 	startServer()
+
 }
