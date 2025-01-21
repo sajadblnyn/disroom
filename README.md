@@ -86,7 +86,7 @@ js.QueueSubscribe("room.global_messages", "message-processor", func(msg *nats.Ms
 ```
 ## Solved Challenges & Solutions
 ## 1. Horizontal Message Processing
-Problem
+### Problem
 Single-threaded processing creates bottlenecks for high message volumes.
 
 ### Architecture
@@ -114,7 +114,7 @@ graph LR
 3.Zero-downtime scaling
 
 ## 2. Competing Consumers Pattern
-# Problem
+### Problem
 Avoid duplicates while guaranteeing delivery.
 
 ### Solution Workflow
