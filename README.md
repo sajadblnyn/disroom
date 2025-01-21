@@ -16,81 +16,55 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 
 ```mermaid
 graph TD
-    %% Client Section
-    classDef client fill:#e1f5fe,stroke:#039be5;
-    subgraph Clients["📱 Chat Users"]
-        C1(["User 1 (telnet)"])
-        C2(["User 2 (telnet)"])
-        Cn(["User N (telnet)"])
+    subgraph Clients
+        C1[Client]
+        C2[Client]
+        Cn[Client]
     end
-    class C1,C2,Cn client;
 
-    %% Go Server Section
-    classDef server fill:#f0f4c3,stroke:#afb42b;
-    subgraph GoServer["🖥️ Go Chat Server"]
-        TCP[("TCP Server (:8080)")]
-        TCP -->|Handles connection| Handler["Connection Handler
-        (handleConnection func)"]
-        Handler -->|Processes| Commands["User Commands:
-        - join <room>
-        - send <msg>
-        - users
-        - history"]
+    subgraph Go_Server["Go Chat Server (main.go)"]
+        TCP[TCP Server :8080]
+        TCP -->|Accept Connection| Handler[handleConnection]
+        Handler -->|Read Commands| Processor[Protocol Processor]
+        Processor -->|join/send/users| RedisCmds[(Redis)]
+        Processor -->|publishMessage| JetStream
     end
-    class TCP,Handler,Commands server;
 
-    %% Data Storage Section
-    classDef storage fill:#ffcdd2,stroke:#e53935;
-    subgraph Data["💾 Data Storage"]
-        Redis[["🔑 Redis
-        - Stores room members
-        - Sets: room:<id>:users"]]
-        NATS[["✉️ NATS JetStream
+    subgraph Redis["Redis Data Layer"]
+        RedisCmds["Keys:
+        - room:<id>:users (Set)
+        - (SADD/SREM/SMEMBERS)"]
+    end
+
+    subgraph NATS_Cluster["NATS Cluster with JetStream"]
+        N1[NATS Node 1]
+        N2[NATS Node 2]
+        N3[NATS Node 3]
+        JS[(JetStream)]
+        
+        JS -->|Persistent Stream| Storage["ChatRooms Stream:
         - Subjects: room.*
-        - Persistent messages"]]
+        - File Storage
+        - History Retention"]
+        
+        N1 -.-> JS
+        N2 -.-> JS
+        N3 -.-> JS
     end
-    class Redis,NATS storage;
 
-    %% Message Flow
-    Commands -->|"join/leave room
-    (SADD/SREM)"| Redis
-    Commands -->|"send message
-    (publishMessage)"| NATS
-
-    %% NATS Cluster
-    classDef cluster fill:#c8e6c9,stroke#43a047;
-    subgraph Cluster["🌐 NATS Cluster"]
-        N1[("Node 1")]
-        N2[("Node 2")]
-        N3[("Node 3")]
-        NATS -->|"Stores messages"| History[("📚 Message History
-        - Last 100 messages
-        - File storage")]
+    subgraph Workers["Message Processors"]
+        W1[Worker]
+        W2[Worker]
+        W3[Worker]
+        W1 -->|QueueSubscribe| JS
+        W2 -->|QueueSubscribe| JS
+        W3 -->|QueueSubscribe| JS
     end
-    class N1,N2,N3,History cluster;
 
-    %% Workers
-    classDef worker fill#d1c4e9,stroke#7b1fa2;
-    subgraph Workers["👷 Message Workers"]
-        W1["Worker 1"]
-        W2["Worker 2"]
-        W3["Worker 3"]
-        NATS -->|"Distributes messages"| W1
-        NATS -->|"Using queue groups"| W2
-        NATS -->|"Load balancing"| W3
-    end
-    class W1,W2,W3 worker;
-
-    %% Client Connections
-    C1 -->|"1. Connects"| TCP
-    C2 -->|"2. Sends commands"| TCP
-    Cn -->|"3. Receives messages"| TCP
-
-    %% Visual Layout Directions
-    Clients --> GoServer
-    GoServer --> Data
-    Data --> Cluster
-    Cluster --> Workers
+    C1 -->|telnet| TCP
+    C2 -->|telnet| TCP
+    Cn -->|telnet| TCP
+    Processor -->|publishMessageToRoom| JS
 ```
 ## Message Flow:
 ```mermaid
