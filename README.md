@@ -15,38 +15,38 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 ## System Architecture Diagram
 
 ```mermaid
++-------------+       +-----------+       +-------------------+
+| TCP Clients | <---> | Go Server | <---> | NATS JetStream    |
++-------------+       +-----------+       +-------------------+
+                            |                /    |    \
+                            +-------------> /     |     \
+                                           /      |      \
+                                    +----------+  |  +-----------+
+                                    | Redis DB |  |  | Queue     |
+                                    +----------+  |  | Workers   |
+                                                  |  +-----------+
+                                                  |       |
+                                                  |  +-----------+
+                                                  |  | Stream    |
+                                                  |  | Storage   |
+                                                  |  +-----------+
+                                                  |
+                                             +------------+
+                                             | Chat Rooms |
+                                             +------------+
+```
+## Message Flow:
+```mermaid
 graph TD
-    subgraph Clients
-        C1[Client 1]
-        C2[Client 2]
-        Cn[Client N]
-    end
-
-    subgraph Go Chat Server
-        GS[TCP Server]
-        GS -->|Handle Connections| HC[Connection Handler]
-        HC -->|User Commands| P[Protocol Processor]
-    end
-
-    subgraph Data Layer
-        GS -->|Store/Retrieve Active Users| R[(Redis)]
-        GS -->|Publish/Subscribe Messages| NATS
-    end
-
-    subgraph NATS Cluster
-        NATS{NATS JetStream}
-        NATS -->|Stream Persistence| STORAGE[(File Storage)]
-        N1[NATS Node 1]
-        N2[NATS Node 2]
-        N3[NATS Node 3]
-    end
-
-    C1 -->|TCP| GS
-    C2 -->|TCP| GS
-    Cn -->|TCP| GS
-    NATS -.- N1
-    NATS -.- N2
-    NATS -.- N3
+    A[Client] --> B[TCP Server]
+    B --> C[room.global_messages]
+    C --> D{Queue Group}
+    D --> E[Worker 1]
+    D --> F[Worker 2]
+    D --> G[Worker 3]
+    E --> H[room.123]
+    F --> I[room.456]
+    G --> J[room.789]
 ```
 
 ## 🧰 Components
