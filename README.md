@@ -85,12 +85,12 @@ js.QueueSubscribe("room.global_messages", "message-processor", func(msg *nats.Ms
 })
 ```
 ## Solved Challenges & Solutions
-# 1. Horizontal Message Processing
+## 1. Horizontal Message Processing
 Problem
 Single-threaded processing creates bottlenecks for high message volumes.
 
-# Architecture
-```
+### Architecture
+```mermaid
 graph LR
     A[10K msgs/sec] --> B[Queue Group]
     B --> C[Worker 1]
@@ -100,13 +100,13 @@ graph LR
     D --> G[3K msgs]
     E --> H[2K msgs]
 ```
-# Mechanism
+### Mechanism
 1.5 parallel consumers in message-processor group
 
 2.NATS automatically load-balances messages
 
 3.Linear throughput scaling: 2x workers = 2x capacity
-# Benefits
+### Benefits
 1.Processes 100K+ messages/sec
 
 2.No single point of failure
@@ -117,8 +117,8 @@ graph LR
 # Problem
 Avoid duplicates while guaranteeing delivery.
 
-# Solution Workflow
-```
+### Solution Workflow
+```mermaid
 sequenceDiagram
     Client->>NATS: Publish message
     NATS->>Worker1: Deliver message
