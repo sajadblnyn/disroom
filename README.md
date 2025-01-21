@@ -16,37 +16,57 @@ A real-time chat system with distributed messaging capabilities using Go, Redis,
 
 ```mermaid
 graph TD
+```mermaid
+graph TD
     subgraph Clients
-        C1[Client 1]
-        C2[Client 2]
-        Cn[Client N]
+        C1[Client]
+        C2[Client]
+        Cn[Client]
     end
 
-    subgraph Go Chat Server
-        GS[TCP Server]
-        GS -->|Handle Connections| HC[Connection Handler]
-        HC -->|User Commands| P[Protocol Processor]
+    subgraph Go_Server["Go Chat Server (main.go)"]
+        TCP[TCP Server :8080]
+        TCP -->|Accept Connection| Handler[handleConnection]
+        Handler -->|Read Commands| Processor[Protocol Processor]
+        Processor -->|join/send/users| RedisCmds[(Redis)]
+        Processor -->|publishMessage| JetStream
     end
 
-    subgraph Data Layer
-        GS -->|Store/Retrieve Active Users| R[(Redis)]
-        GS -->|Publish/Subscribe Messages| NATS
+    subgraph Redis["Redis Data Layer"]
+        RedisCmds["Keys:
+        - room:<id>:users (Set)
+        - (SADD/SREM/SMEMBERS)"]
     end
 
-    subgraph NATS Cluster
-        NATS{NATS JetStream}
-        NATS -->|Stream Persistence| STORAGE[(File Storage)]
+    subgraph NATS_Cluster["NATS Cluster with JetStream"]
         N1[NATS Node 1]
         N2[NATS Node 2]
         N3[NATS Node 3]
+        JS[(JetStream)]
+        
+        JS -->|Persistent Stream| Storage["ChatRooms Stream:
+        - Subjects: room.*
+        - File Storage
+        - History Retention"]
+        
+        N1 -.-> JS
+        N2 -.-> JS
+        N3 -.-> JS
     end
 
-    C1 -->|TCP| GS
-    C2 -->|TCP| GS
-    Cn -->|TCP| GS
-    NATS -.- N1
-    NATS -.- N2
-    NATS -.- N3
+    subgraph Workers["Message Processors"]
+        W1[Worker]
+        W2[Worker]
+        W3[Worker]
+        W1 -->|QueueSubscribe| JS
+        W2 -->|QueueSubscribe| JS
+        W3 -->|QueueSubscribe| JS
+    end
+
+    C1 -->|telnet| TCP
+    C2 -->|telnet| TCP
+    Cn -->|telnet| TCP
+    Processor -->|publishMessageToRoom| JS
 ```
 ## Message Flow:
 ```mermaid
