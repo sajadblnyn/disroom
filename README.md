@@ -87,8 +87,7 @@ js.QueueSubscribe("room.global_messages", "message-processor", func(msg *nats.Ms
 ## Solved Challenges & Solutions
 ## 1. Horizontal Message Processing
 ### Problem
-Single-threaded processing creates bottlenecks for high message volumes.
-
+Processing a high volume of messages sequentially with a single consumer creates bottlenecks, limiting throughput and increasing latency as message volume grows.
 ### Architecture
 ```mermaid
 graph LR
