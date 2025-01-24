@@ -20,6 +20,15 @@ func PublishMessage(msg model.Message) error {
 	_, err = config.JetStream.Publish("room.global_messages", msgJSON)
 	return err
 }
+
+func PublishPresenceMessage(msg model.Message) error {
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	_, err = config.JetStream.Publish("room.presence_messages", msgJSON)
+	return err
+}
 func PublishMessageToRoom(msg model.Message) error {
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {

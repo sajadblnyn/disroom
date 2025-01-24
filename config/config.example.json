@@ -1,0 +1,14 @@
+{
+  "nats": {
+    "urls": [
+      "nats://nats1:4222",
+      "nats://nats2:4222",
+      "nats://nats3:4222"
+    ]
+  },
+  "redis": {
+    "host": "redis",
+    "port": 6379
+  },
+  "messages_subscribers_workers_count": 5
+}

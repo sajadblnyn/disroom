@@ -69,6 +69,34 @@ services:
       - redis-data:/data
     networks:
       - disroom-network
+  disroom-app1:
+    build: ../
+    image: disroom-app:latest
+    container_name: disroom-app1
+    environment:
+      - SERVER_PORT=8080
+    ports:
+      - 8080:8080
+    networks:
+      - disroom-network
+    depends_on:
+      - nats1
+      - redis
+    restart: unless-stopped
+  disroom-app2:
+    build: ../
+    image: disroom-app:latest
+    container_name: disroom-app2
+    environment:
+      - SERVER_PORT=8080
+    ports:
+      - 8081:8080
+    networks:
+      - disroom-network
+    depends_on:
+      - nats1
+      - redis
+    restart: unless-stopped
 volumes:
   nats_data:
     driver: local

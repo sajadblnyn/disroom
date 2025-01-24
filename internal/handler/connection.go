@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strings"
 	"time"
 
@@ -19,13 +20,18 @@ import (
 var ctx = context.Background()
 
 func StartServer() {
-	listener, err := net.Listen("tcp", ":8080")
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", "8080"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer listener.Close()
 
-	log.Println("Server listening on :8080")
+	log.Printf("Server listening on :%s\n", port)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -41,15 +47,10 @@ func handleConnection(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 
 	var (
-		userID   string
-		roomID   string
-		sub      *nats.Subscription
-		stopChan = make(chan struct{})
+		userID string
+		roomID string
+		sub    *nats.Subscription
 	)
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	defer cleanupConnection(ctx, userID, roomID, sub, stopChan)
 
 	fmt.Fprintln(conn, "Welcome to the DisRoom")
 	fmt.Fprintln(conn, "Available commands: join <room_id>, send <message>, users, history, exit")
@@ -78,6 +79,16 @@ func handleConnection(conn net.Conn) {
 		case "join":
 			if userID != "" && roomID != "" {
 				repository.RemoveUserFromRoom(ctx, userID, roomID)
+
+				users, err := repository.GetActiveUsers(context.Background(), roomID)
+				if err != nil {
+					log.Println(fmt.Errorf("error in get users: %w", err))
+				}
+				json_users, err := json.Marshal(users)
+				if err != nil {
+					log.Println(fmt.Errorf("error in marshal users: %w", err))
+				}
+				repository.PublishPresenceMessage(model.Message{RoomID: roomID, Timestamp: time.Now(), Content: string(json_users)})
 			}
 			if sub != nil {
 				sub.Unsubscribe()
@@ -90,7 +101,7 @@ func handleConnection(conn net.Conn) {
 
 			userID = newUserID
 			roomID = newRoomID
-			go sendPresenceUpdates(roomID, stopChan)
+			defer cleanupConnection(ctx, userID, roomID, sub)
 
 		case "send":
 			if roomID == "" || userID == "" {
@@ -108,30 +119,22 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
-func cleanupConnection(ctx context.Context, userID, roomID string, sub *nats.Subscription, stopChan chan struct{}) {
+func cleanupConnection(ctx context.Context, userID, roomID string, sub *nats.Subscription) {
 	if userID != "" && roomID != "" {
 		repository.RemoveUserFromRoom(ctx, userID, roomID)
+
+		users, err := repository.GetActiveUsers(context.Background(), roomID)
+		if err != nil {
+			log.Println(fmt.Errorf("error in get users: %w", err))
+		}
+		json_users, err := json.Marshal(users)
+		if err != nil {
+			log.Println(fmt.Errorf("error in marshal users: %w", err))
+		}
+		repository.PublishPresenceMessage(model.Message{RoomID: roomID, Timestamp: time.Now(), Content: string(json_users)})
 	}
 	if sub != nil {
 		sub.Unsubscribe()
-	}
-	close(stopChan)
-}
-
-func sendPresenceUpdates(roomID string, stopChan chan struct{}) {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-stopChan:
-			return
-		case <-ticker.C:
-			if roomID != "" {
-				users, _ := repository.GetActiveUsers(context.Background(), roomID)
-				config.JetStream.Publish(fmt.Sprintf("room.%s_presence", roomID), []byte(strings.Join(users, ",")))
-			}
-		}
 	}
 }
 
@@ -173,6 +176,16 @@ func handleJoin(sub *nats.Subscription, conn net.Conn, reader *bufio.Reader, arg
 	if err != nil {
 		return "", "", fmt.Errorf("presence subscription error: %w", err)
 	}
+
+	users, err := repository.GetActiveUsers(context.Background(), newRoomID)
+	if err != nil {
+		return "", "", fmt.Errorf("error in get users: %w", err)
+	}
+	json_users, err := json.Marshal(users)
+	if err != nil {
+		return "", "", fmt.Errorf("error in marshal users: %w", err)
+	}
+	repository.PublishPresenceMessage(model.Message{RoomID: newRoomID, Timestamp: time.Now(), Content: string(json_users)})
 
 	fmt.Fprintf(conn, "Joined room %s as %s\n", newRoomID, newUserID)
 	return newRoomID, newUserID, nil

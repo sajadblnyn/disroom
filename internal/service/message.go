@@ -10,9 +10,28 @@ import (
 	"github.com/sajadblnyn/disroom/internal/repository"
 )
 
-func RunMessagesSubscribers() {
-	for i := 0; i < 5; i++ {
+func RunMessagesSubscribers(workersCount int) {
+	for i := 0; i < workersCount; i++ {
 		_, err := config.JetStream.QueueSubscribe("room.global_messages", "message-processor", func(msg *nats.Msg) {
+			var message model.Message
+			if err := json.Unmarshal(msg.Data, &message); err != nil {
+				log.Printf("Failed to unmarshal message: %v", err)
+				return
+			}
+			if err := repository.PublishMessageToRoom(message); err != nil {
+				log.Printf("Failed to publish message: %v", err)
+			}
+		})
+		if err != nil {
+			log.Printf("Failed to subscribe to messages: %v", err)
+			continue
+		}
+	}
+}
+
+func RunPresenceMessagesSubscribers(workersCount int) {
+	for i := 0; i < workersCount; i++ {
+		_, err := config.JetStream.QueueSubscribe("room.presence_messages", "presence-message-processor", func(msg *nats.Msg) {
 			var message model.Message
 			if err := json.Unmarshal(msg.Data, &message); err != nil {
 				log.Printf("Failed to unmarshal message: %v", err)

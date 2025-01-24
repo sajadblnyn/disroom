@@ -38,7 +38,7 @@ func TestMessageService(t *testing.T) {
 	repository.CreateStream()
 
 	t.Run("Message Routing", func(t *testing.T) {
-		service.RunMessagesSubscribers()
+		service.RunMessagesSubscribers(5)
 
 		testMsg := model.Message{
 			RoomID:    "routed-room",

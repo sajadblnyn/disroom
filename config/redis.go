@@ -11,7 +11,7 @@ var RedisClient *redis.Client
 
 func InitRedis() {
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: GetRedisAddress(),
 	})
 
 	if err := RedisClient.Ping(context.Background()).Err(); err != nil {
