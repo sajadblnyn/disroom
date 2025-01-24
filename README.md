@@ -171,7 +171,7 @@ git clone https://github.com/sajadblnyn/disroom.git
 cd disroom
 
 # 2. Start all services
-docker-compose -f build/docker-compose.yml build disroom
+cd build/ && docker-compose up -d
 ```
 ## 💻 Usage
 
